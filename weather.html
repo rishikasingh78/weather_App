@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Async Weather Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>Async Weather Tracker</h1>
+
+<div id="search-main-container">
+
+    <div id="search-city-box">
+        <h3>Search City</h3>
+        <form>
+            <input type="text" id="city" placeholder="Enter city name">
+            <button type="submit">Search</button>
+        </form>
+    </div>
+
+    <div id="search-history-box">
+        <h3>Search History</h3>
+        <div id="searched-cities-box"></div>
+
+        <div id="weather-info-container">
+            <h3>Weather Info</h3>
+            <div id="city-weather-container"></div>
+        </div>
+    </div>
+
+    <div id="console-box">
+        <h3>Console – Event Loop</h3>
+        <div id="console-output"></div>
+    </div>
+
+</div>
+
+<script>
+
+let API_KEY = "3bc0054e9621287a88bb4a7b6f9b85af";
+
+let form = document.querySelector("form");
+let cityInput = document.querySelector("#city");
+let weatherContainer = document.querySelector("#city-weather-container");
+let historyBox = document.querySelector("#searched-cities-box");
+let consoleOutput = document.querySelector("#console-output");
+
+/* ============ Console Log Function ============ */
+function logMessage(message){
+    console.log(message);
+    consoleOutput.innerHTML += message + "<br>";
+}
+
+/* ============ Load History on Page Load ============ */
+window.addEventListener("DOMContentLoaded", loadHistory);
+
+/* ============ Get Weather Function ============ */
+async function getWeather(city){
+
+    if(city.trim() === ""){
+        alert("Please enter a city name");
+        return;
+    }
+
+    logMessage("1️⃣ Sync Start");
+
+    try{
+
+        logMessage("2️⃣ Before Fetch (Async Started)");
+
+        let response = await fetch(
+            `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric`
+        );
+
+        if(!response.ok){
+            throw new Error("City not found");
+        }
+
+        logMessage("3️⃣ Fetch Completed (Microtask)");
+
+        let data = await response.json();
+
+        logMessage("4️⃣ Data Received");
+
+        displayWeather(data);
+        saveToHistory(city);
+
+    }
+    catch(error){
+        logMessage("❌ Error Caught");
+        weatherContainer.innerHTML = "<p style='color:red;'>City not found</p>";
+    }
+
+    logMessage("5️⃣ Sync End");
+}
+
+/* ============ Display Weather ============ */
+function displayWeather(data){
+
+    weatherContainer.innerHTML = `
+        <div>City : ${data.name}, ${data.sys.country}</div>
+        <div>Temperature : ${data.main.temp} °C</div>
+        <div>Condition : ${data.weather[0].main}</div>
+        <div>Humidity : ${data.main.humidity}%</div>
+        <div>Wind Speed : ${data.wind.speed} m/s</div>
+    `;
+}
+
+/* ============ Save To LocalStorage ============ */
+function saveToHistory(city){
+
+    let cities = JSON.parse(localStorage.getItem("cities")) || [];
+
+    if(!cities.includes(city)){
+        cities.push(city);
+        localStorage.setItem("cities", JSON.stringify(cities));
+    }
+
+    loadHistory();
+}
+
+/* ============ Load History ============ */
+function loadHistory(){
+
+    historyBox.innerHTML = "";
+
+    let cities = JSON.parse(localStorage.getItem("cities")) || [];
+
+    cities.forEach(city => {
+        let button = document.createElement("button");
+        button.textContent = city;
+
+        button.addEventListener("click", () => {
+            consoleOutput.innerHTML = "";
+            getWeather(city);
+        });
+
+        historyBox.appendChild(button);
+    });
+}
+
+/* ============ Form Submit ============ */
+form.addEventListener("submit", function(e){
+    e.preventDefault();
+    consoleOutput.innerHTML = "";
+    getWeather(cityInput.value);
+    cityInput.value = "";
+});
+
+</script>
+
+</body>
+</html> 
